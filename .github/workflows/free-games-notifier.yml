@@ -2,14 +2,16 @@ name: Free Games Notifier
 
 on:
   schedule:
-    - cron: '0 */12 * * *'    # 12時間ごと（必要に応じて変更：毎日なら '0 9 * * *'）
-  workflow_dispatch:         # 手動実行も可能
+    - cron: '0 */12 * * *'    # 12時間ごとに実行（例: 毎日1回にしたい場合は '0 9 * * *' に変更）
+  workflow_dispatch:         # 手動実行も可能にする
 
 jobs:
   notify:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -19,12 +21,24 @@ jobs:
       - name: Install uv (高速パッケージマネージャ)
         run: curl -LsSf https://astral.sh/uv/install.sh | sh
 
+      - name: Cache seen games data (重複防止用データを保持)
+        uses: actions/cache@v4
+        with:
+          path: |
+            seen_games.json
+            ~/.local/share/discord_free_game_notifier/
+            ~/.cache/discord_free_game_notifier/
+          key: free-games-seen-v2-${{ github.sha }}
+          restore-keys: |
+            free-games-seen-v2-
+
       - name: Install dependencies
         run: uv sync --frozen
 
-      - name: Run notifier
+      - name: Run free games notifier
         env:
           WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
-          STORES: steam,epic          # SteamとEpicだけにしたい場合はコメント解除
-          PLATFORMS: pc               # PCゲームだけにしたい場合
+          STORES: steam,epic                  # SteamとEpicだけにしたい場合はコメントを外して使用
+          PLATFORMS: pc                       # PCゲームだけにしたい場合
+          # LOG_LEVEL: INFO
         run: uv run python -m discord_free_game_notifier.main
