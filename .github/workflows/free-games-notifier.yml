@@ -2,7 +2,7 @@ name: Free Games Notifier (Steam + Epic PC only)
 
 on:
   schedule:
-    - cron: '0 9,21 * * *'    # 12時間ごと
+    - cron: '0 9,21 * * *'    # 12時間ごと（朝9時・夜21時）
   workflow_dispatch:
 
 jobs:
@@ -33,7 +33,7 @@ jobs:
           restore-keys: |
             free-games-seen-v4
 
-      # === 実行前のフォルダ確認 ===
+      # === 実行前の確認 ===
       - name: Debug - Check data folder BEFORE run
         run: |
           echo "=== BEFORE run ==="
@@ -47,7 +47,7 @@ jobs:
           PLATFORMS: pc
         run: uv run python -m discord_free_game_notifier.main
 
-      # === 実行後のフォルダ確認（ここが一番重要！） ===
+      # === 実行後の確認（ここが一番重要！） ===
       - name: Debug - Check data folder AFTER run
         run: |
           echo "=== AFTER run ==="
