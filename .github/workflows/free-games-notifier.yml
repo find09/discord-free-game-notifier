@@ -2,20 +2,16 @@ name: Free Games Notifier (Steam + Epic PC only)
 
 on:
   schedule:
-    - cron: '0 9,21 * * *'    # 12時間ごと（日本時間で朝9時・夜21時頃）
-  workflow_dispatch:          # 手動実行も可能
+    - cron: '0 9,21 * * *'    # 12時間ごと（日本時間 朝9時・夜21時）
+  workflow_dispatch:
 
 jobs:
   notify:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write         # seen_games.json をコミットするために必要
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -28,33 +24,23 @@ jobs:
       - name: Install dependencies
         run: uv sync --frozen
 
-      # 重複防止用 seen_games.json を復元
-      - name: Restore seen games JSON
+      # ==================== 重複防止データを永続化（これが重要！） ====================
+      - name: Restore seen games data (重複防止用)
         uses: actions/cache@v4
         with:
-          path: seen_games.json
-          key: free-games-seen-json-v1
+          path: ~/.local/share/discord_free_game_notifier/
+          key: free-games-seen-v4
           restore-keys: |
-            free-games-seen-json-v1
+            free-games-seen-v4
 
-      # SteamとEpicのPCゲームのみを対象に実行
+      - name: Debug - Check saved data folder
+        run: ls -la ~/.local/share/discord_free_game_notifier/ || echo "Folder not found yet (初回は正常)"
+
+      # =============================================================================
+
       - name: Run free games notifier
         env:
           WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
           STORES: steam,epic        # SteamとEpicのみ
           PLATFORMS: pc             # PCゲームのみ
-          # LOG_LEVEL: INFO         # 必要ならコメントを外して有効化
         run: uv run python -m discord_free_game_notifier.main
-
-      # 実行後に seen_games.json をリポジトリに保存（重複防止を永続化）
-      - name: Commit and push seen_games.json if changed
-        run: |
-          if [ -f seen_games.json ]; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add seen_games.json
-            git commit -m "Update seen_games.json (auto)" || echo "No changes to commit"
-            git push
-          fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
