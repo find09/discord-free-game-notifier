@@ -2,7 +2,7 @@ name: Free Games Notifier (Steam + Epic PC only)
 
 on:
   schedule:
-    - cron: '0 9,21 * * *'    # 12時間ごと（日本時間 朝9時・夜21時）
+    - cron: '0 9,21 * * *'    # 12時間ごと（朝9時・夜21時）
   workflow_dispatch:
 
 jobs:
@@ -24,8 +24,8 @@ jobs:
       - name: Install dependencies
         run: uv sync --frozen
 
-      # ==================== 重複防止データを永続化（これが重要！） ====================
-      - name: Restore seen games data (重複防止用)
+      # 重複防止データを復元
+      - name: Restore seen games data
         uses: actions/cache@v4
         with:
           path: ~/.local/share/discord_free_game_notifier/
@@ -33,14 +33,19 @@ jobs:
           restore-keys: |
             free-games-seen-v4
 
-      - name: Debug - Check saved data folder
-        run: ls -la ~/.local/share/discord_free_game_notifier/ || echo "Folder not found yet (初回は正常)"
-
-      # =============================================================================
-
+      # スクリプト実行
       - name: Run free games notifier
         env:
           WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
-          STORES: steam,epic        # SteamとEpicのみ
-          PLATFORMS: pc             # PCゲームのみ
+          STORES: steam,epic
+          PLATFORMS: pc
         run: uv run python -m discord_free_game_notifier.main
+
+      # ==================== 追加：実行後にフォルダを確認（重要！） ====================
+      - name: Debug - Check data folder AFTER run
+        run: |
+          echo "=== データフォルダ確認（スクリプト実行後）==="
+          ls -la ~/.local/share/discord_free_game_notifier/ || echo "フォルダが存在しません"
+          echo "=== ファイル一覧 ==="
+          find ~/.local/share/discord_free_game_notifier/ -type f || echo "ファイルなし"
+      # =============================================================================
