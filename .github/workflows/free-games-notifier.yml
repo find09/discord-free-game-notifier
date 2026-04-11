@@ -2,7 +2,7 @@ name: Free Games Notifier (Steam + Epic PC only)
 
 on:
   schedule:
-    - cron: '0 9,21 * * *'    # 12時間ごと（朝9時・夜21時）
+    - cron: '0 9,21 * * *'    # 12時間ごと
   workflow_dispatch:
 
 jobs:
@@ -33,7 +33,13 @@ jobs:
           restore-keys: |
             free-games-seen-v4
 
-      # スクリプト実行
+      # === 実行前のフォルダ確認 ===
+      - name: Debug - Check data folder BEFORE run
+        run: |
+          echo "=== BEFORE run ==="
+          ls -la ~/.local/share/discord_free_game_notifier/ || echo "フォルダなし（初回は正常）"
+
+      # メイン実行
       - name: Run free games notifier
         env:
           WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
@@ -41,11 +47,10 @@ jobs:
           PLATFORMS: pc
         run: uv run python -m discord_free_game_notifier.main
 
-      # ==================== 追加：実行後にフォルダを確認（重要！） ====================
+      # === 実行後のフォルダ確認（ここが一番重要！） ===
       - name: Debug - Check data folder AFTER run
         run: |
-          echo "=== データフォルダ確認（スクリプト実行後）==="
-          ls -la ~/.local/share/discord_free_game_notifier/ || echo "フォルダが存在しません"
+          echo "=== AFTER run ==="
+          ls -la ~/.local/share/discord_free_game_notifier/ || echo "フォルダなし"
           echo "=== ファイル一覧 ==="
           find ~/.local/share/discord_free_game_notifier/ -type f || echo "ファイルなし"
-      # =============================================================================
